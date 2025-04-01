@@ -47,7 +47,7 @@ class RegisteredUserController extends Controller
     ]);
 
     // Send the welcome email
-    Mail::to($user->email)->send(new WelcomeEmail($user->name, route('home')));
+    Mail::to($user->email)->send(new WelcomeEmail($user->name, route('dashboard')));
 
     // Redirect to the dashboard or another page
     return redirect()->route('dashboard');
