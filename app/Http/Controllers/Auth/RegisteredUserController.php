@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
+use App\Mail\WelcomeEmail;
+use Illuminate\Support\Facades\Mail;
+
 
 class RegisteredUserController extends Controller
 {
@@ -27,24 +30,26 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
+    public function store(Request $request)
+{
+    // Validate the request
+    $validated = $request->validate([
+        'name' => ['required', 'string', 'max:255'],
+        'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+        'password' => ['required', 'string', 'min:8', 'confirmed'],
+    ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+    // Create the user
+    $user = User::create([
+        'name' => $validated['name'],
+        'email' => $validated['email'],
+        'password' => bcrypt($validated['password']),
+    ]);
 
-        event(new Registered($user));
+    // Send the welcome email
+    Mail::to($user->email)->send(new WelcomeEmail($user->name, route('home')));
 
-        Auth::login($user);
-
-        return redirect(route('dashboard', absolute: false));
-    }
+    // Redirect to the dashboard or another page
+    return redirect()->route('dashboard');
+}
 }
